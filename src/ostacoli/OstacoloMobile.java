@@ -3,6 +3,8 @@
 package ostacoli;
 
 import geometria.Rettangolo;
+import pong.Campo;
+
 import java.awt.Color;
 
 /**
@@ -17,6 +19,11 @@ public class OstacoloMobile implements Ostacolo {
     public static final Color COLORE = new Color(80, 200, 120);
 
     private Rettangolo area;   // non è final: l'ostacolo si muove
+    private boolean isrotto = false;
+    private boolean giu = true;
+    private double limiteAlto;
+    private double limiteBasso;
+    private double velocita;
     // scrivete qui gli altri campi che vi servono
 
     /**
@@ -26,6 +33,12 @@ public class OstacoloMobile implements Ostacolo {
      */
     public OstacoloMobile(Rettangolo area, double velocita, double limiteAlto, double limiteBasso) {
         this.area = area;
+        this.velocita = velocita;
+        this.limiteAlto = limiteAlto;
+        this.limiteBasso = limiteBasso;
+        this.giu = true;
+        this.isrotto = false;
+
         // scrivete qui
     }
 
@@ -36,17 +49,18 @@ public class OstacoloMobile implements Ostacolo {
     @Override
     public void colpisci(Ostacoli campo) {
         // scrivete qui
+        //non fa nulla
     }
 
     @Override
     public boolean isRotto() {
-        return false; // scrivete qui
+        return isrotto; // scrivete qui
     }
 
     /** Promette: COLORE. */
     @Override
     public Color getColore() {
-        return null; // scrivete qui
+        return COLORE; // scrivete qui
     }
 
     /**
@@ -58,6 +72,31 @@ public class OstacoloMobile implements Ostacolo {
      */
     @Override
     public void avanza() {
-        // scrivete qui
+        double d = vicinoBordo();
+        if (d <= velocita) {
+            passo(d);
+            giu = !giu;
+        } else {
+            passo(velocita);
+        }
+    }
+
+    /** Quanto manca al limite verso cui sta andando. */
+    private double vicinoBordo() {
+        if (giu) {
+            return limiteBasso - (area.y() + area.altezza());
+        }
+        return area.y() - limiteAlto;
+    }
+
+    /** Sposta l'ostacolo di step pixel nel verso in cui sta andando. */
+    private void passo(double step) {
+        double nuovaY;
+        if (giu) {
+            nuovaY = area.y() + step;
+        } else {
+            nuovaY = area.y() - step;
+        }
+        area = new Rettangolo(area.x(), nuovaY, area.larghezza(), area.altezza());
     }
 }
