@@ -4,6 +4,7 @@ package ostacoli;
 
 import geometria.Rettangolo;
 import java.awt.Color;
+import java.util.List;
 
 /**
  * L'ostacolo esplosivo: si rompe al primo colpo e, quando si rompe, esplode: colpisce una volta
@@ -20,6 +21,7 @@ public class OstacoloEsplosivo implements Ostacolo {
     /** Fin dove arriva l'esplosione: PORTATA pixel oltre ogni lato dell'ostacolo. */
     public static final double PORTATA = 30;
     public static final Color COLORE = new Color(235, 90, 40);
+    private boolean isrotto = false;
 
     private final Rettangolo area;
     // scrivete qui gli altri campi che vi servono
@@ -38,18 +40,20 @@ public class OstacoloEsplosivo implements Ostacolo {
      */
     @Override
     public void colpisci(Ostacoli campo) {
-        // scrivete qui
+        if (isRotto()) throw new IllegalStateException("l'ostacolo esplosivo in " + getArea() + " è già rotto");
+        isrotto = true;
+        campo.colpisciAttorno(this.getArea().allargato(PORTATA));
     }
 
     @Override
     public boolean isRotto() {
-        return false; // scrivete qui
+        return isrotto; // scrivete qui
     }
 
     /** Promette: COLORE, anche da rotto. */
     @Override
     public Color getColore() {
-        return null; // scrivete qui
+        return COLORE; // scrivete qui
     }
 
     @Override
