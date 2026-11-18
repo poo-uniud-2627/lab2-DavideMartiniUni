@@ -16,6 +16,8 @@ import javax.swing.JPanel;
 import javax.swing.Timer;
 import ostacoli.MotoreDeiLivelli;
 import ostacoli.Ostacolo;
+import stelle.Raccolta;
+import stelle.Stella;
 
 /**
  * Mostra la partita: sessanta volte al secondo la fa avanzare di un passo e la ridisegna.
@@ -51,12 +53,14 @@ class Schermo extends JPanel {
 
     private void passo() {
         if (!partita.isInCorso()) {
+            /* Altra versione che seleziona i livelli  
             for (int numero = 1; numero <= MotoreDeiLivelli.NUMERO_LIVELLI; numero++) {
                 // il tasto del numero, sopra le lettere o nel tastierino numerico
                 if (tastiera.premuto(KeyEvent.VK_0 + numero) || tastiera.premuto(KeyEvent.VK_NUMPAD0 + numero)) {
                     partita.preparaLivello(numero);
                 }
             }
+            */  
             if (tastiera.premuto(KeyEvent.VK_SPACE)) partita.avvia();
         }
         partita.aggiorna();
@@ -92,7 +96,13 @@ class Schermo extends JPanel {
                 riempi(g2, o.getArea());
             }
         }
-
+        Stella stella = partita.getStella();
+            if (stella != null) {
+                Rettangolo a = stella.getArea();
+                g2.setColor(Color.YELLOW);
+                g2.fillOval((int) Math.round(a.x()), (int) Math.round(a.y()),
+                        (int) Math.round(a.larghezza()), (int) Math.round(a.altezza()));
+        }
         g2.setColor(Color.WHITE);
         disegna(g2, partita.getRacchettaSinistra());
         disegna(g2, partita.getRacchettaDestra());
@@ -108,14 +118,23 @@ class Schermo extends JPanel {
         g2.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 18));
         scriviAlCentro(g2, "Livello " + partita.getLivello().numero(), larghezza, altezza - 20);
 
+        scriviA(g2, "Vite: " + partita.getVite(), 20, 30);
+        scriviA(g2, "Stelle: " + partita.getStelle() + "/" + Raccolta.STELLE_PER_UNA_VITA, 20, 55);
+
         if (!partita.isInCorso()) {
             g2.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 22));
-            if (partita.getVincitore() == Lato.SINISTRA) {
+            boolean finito = partita.isCompletato() || partita.isPerso();
+            if (partita.isCompletato()) {
+                scriviAlCentro(g2, "Hai completato tutti i livelli!", larghezza, altezza / 2 - 40);
+            } else if (partita.isPerso()) {
+                scriviAlCentro(g2, "Hai finito le vite.", larghezza, altezza / 2 - 40);
+            } else if (partita.getVincitore() == Lato.SINISTRA) {
                 scriviAlCentro(g2, "Hai vinto!", larghezza, altezza / 2 - 40);
             } else if (partita.getVincitore() == Lato.DESTRA) {
                 scriviAlCentro(g2, "Ha vinto il computer.", larghezza, altezza / 2 - 40);
             }
-            scriviAlCentro(g2, "Premi un tasto da 1 a 5 per scegliere il livello, poi SPAZIO", larghezza, altezza / 2 + 60);
+            scriviAlCentro(g2, finito ? "Premi SPAZIO per ricominciare da capo" : "Premi SPAZIO per continuare",
+                    larghezza, altezza / 2 + 60);
         }
     }
 
@@ -127,6 +146,10 @@ class Schermo extends JPanel {
     private static void riempi(Graphics2D g2, Rettangolo r) {
         g2.fillRect((int) Math.round(r.x()), (int) Math.round(r.y()),
                 (int) Math.round(r.larghezza()), (int) Math.round(r.altezza()));
+    }
+
+    private static void scriviA(Graphics2D g2, String testo, int x, int y) {
+        g2.drawString(testo, x, y);
     }
 
     /** Scrive il testo centrato in orizzontale in un campo largo larghezza, all'altezza y. */

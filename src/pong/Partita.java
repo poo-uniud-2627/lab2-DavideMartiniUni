@@ -7,6 +7,9 @@ import ostacoli.Livello;
 import ostacoli.MotoreDeiLivelli;
 import ostacoli.Ostacoli;
 import ostacoli.Ostacolo;
+import geometria.Rettangolo;
+import stelle.Raccolta;
+import stelle.Stella;
 
 /**
  * Una partita a un livello: voi a sinistra, il giocatore automatico a destra, due racchette,
@@ -24,6 +27,16 @@ class Partita {
     private final Racchetta racchettaDestra;
     private final Palla palla;
     private final Punteggio punteggio = new Punteggio(PUNTI_PER_VINCERE, SCARTO_MINIMO);
+
+    static final int VITE = 3;
+    static final int LATO_STELLA = 16;
+    static final int UNA_STELLA_OGNI = 300;
+
+    private final Livelli livelli = new Livelli(MotoreDeiLivelli.NUMERO_LIVELLI, VITE, Lato.SINISTRA);
+    private Raccolta raccolta = new Raccolta(Raccolta.STELLE_PER_UNA_VITA);
+    private Stella stella;   // null se non c'è nessuna stella
+    private final Random random = new Random();
+
     private Livello livello;
     private Ostacoli ostacoli;
     private boolean iniziata;
@@ -36,7 +49,7 @@ class Partita {
         this.racchettaSinistra = new Racchetta(30, centroY);
         this.racchettaDestra = new Racchetta(campo.getLarghezza() - 30 - Racchetta.LARGHEZZA, centroY);
         this.palla = new Palla(campo.getLarghezza() / 2.0, campo.getAltezza() / 2.0);
-        preparaLivello(1);
+        preparaLivello(livelli.getLivello());
     }
 
     /**
@@ -50,6 +63,7 @@ class Partita {
         giocatoreDestra = new GiocatoreAutomatico(livello.erroreMassimo());
         punteggio.azzera();
         iniziata = false;
+        stella = null;
         palla.fermaIn(campo.getLarghezza() / 2.0, campo.getAltezza() / 2.0);
     }
 
@@ -76,9 +90,15 @@ class Partita {
      * Pretende: la partita non è in corso.
      */
     void avvia() {
-        if (iniziata) preparaLivello(livello.numero());
+        if (iniziata) {
+            if (livelli.isFinito()) {
+                livelli.ricomincia();
+                raccolta = new Raccolta(Raccolta.STELLE_PER_UNA_VITA);
+            }
+            preparaLivello(livelli.getLivello());
+        }
         iniziata = true;
-        lanciaPalla(new Random().nextBoolean());
+        lanciaPalla(random.nextBoolean());
     }
 
     /** Lancia la palla dal centro, alla velocità del livello. */
@@ -91,6 +111,7 @@ class Partita {
         if (!isInCorso()) return;
         ostacoli.avanzaTutti();
         muoviRacchette();
+        aggiornaStella();
         palla.muovi();
         controllaRimbalzi();
         controllaOstacoli();
@@ -103,6 +124,28 @@ class Partita {
         Mossa mossaDestra = giocatoreDestra.decidiMossa(palla, racchettaDestra);
         racchettaSinistra.muovi(mossaSinistra, campo);
         racchettaDestra.muovi(mossaDestra, campo);
+    }
+
+    private void aggiornaStella() {
+        if (stella == null) {
+            if (random.nextInt(UNA_STELLA_OGNI) == 0) {
+                double x = racchettaSinistra.getX() + (Racchetta.LARGHEZZA - LATO_STELLA) / 2.0;
+                double y = random.nextDouble() * (campo.getAltezza() - LATO_STELLA);
+                stella = new Stella(new Rettangolo(x, y, LATO_STELLA, LATO_STELLA), livello.durataStella());
+            }
+            return;
+        }
+        stella.avanza();
+        if (stella.isVisibile() && areaRacchettaSinistra().tocca(stella.getArea())) {
+            stella.raccogli();
+            if (raccolta.aggiungi()) livelli.guadagnaVita();
+        }
+        if (!stella.isVisibile()) stella = null;
+    }
+
+    private Rettangolo areaRacchettaSinistra() {
+        return new Rettangolo(racchettaSinistra.getX(), racchettaSinistra.getY(),
+                racchettaSinistra.getLarghezza(), racchettaSinistra.getAltezza());
     }
 
     private void controllaRimbalzi() {
@@ -142,6 +185,7 @@ class Partita {
     /** Dopo un punto: se la partita non è finita si serve verso chi ha subito il punto, altrimenti la palla si ferma. */
     private void dopoIlPunto(boolean versoSinistra) {
         if (punteggio.isFinita()) {
+            livelli.partitaFinita(punteggio.getVincitore());
             palla.fermaIn(campo.getLarghezza() / 2.0, campo.getAltezza() / 2.0);
         } else {
             lanciaPalla(!versoSinistra);
@@ -152,4 +196,23 @@ class Partita {
     Palla getPalla() { return palla; }
     Racchetta getRacchettaSinistra() { return racchettaSinistra; }
     Racchetta getRacchettaDestra() { return racchettaDestra; }
+    int getVite() {
+        return livelli.getVite();
+    }
+
+    int getStelle() {
+        return raccolta.getStelle();
+    }
+
+    Stella getStella() {
+        return stella;
+    }
+
+    boolean isCompletato() {
+        return livelli.isCompletato();
+    }
+
+    boolean isPerso() {
+        return livelli.isPerso();
+    }
 }
